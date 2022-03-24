@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from sqlalchemy.orm import Session
-
+# CORS Import
+from fastapi.middleware.cors import CORSMiddleware
 
 # Script we created imports
 from . import models
@@ -25,9 +25,24 @@ print(settings.database_username)
 
 
 
-
 # Implement application
 app = FastAPI()
+
+#origins = ["https://www.google.com","https://www.google.ro"]
+# Every single origin:
+origins =["*"]
+
+
+# CORS implementation in order to be able to receive requests from browser NOT on our domain
+# By default we can only receive requests from browser hosted on the same domain as app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 # Include the post and user routers 
@@ -37,6 +52,7 @@ app.include_router(auth.router)
 app.include_router(vote.router)
 
 
+# Default get request (home page)
 @app.get("/")
 def root():
     return {"message": "Hello World"}
