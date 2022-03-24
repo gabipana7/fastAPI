@@ -16,8 +16,15 @@ from .config import settings
 
 print(settings.database_username)
 
-# Implement models (from models.py) and bind to engine (from database.py)
-models.Base.metadata.create_all(bind=engine)
+# NO LONGER NEEDED BECAUSE OF ALEMBIC
+
+# # Implement models (from models.py) and create dqlalchemy engine (from database.py)
+# models.Base.metadata.create_all(bind=engine)
+
+# Alembic migration config in alembic.ini and env.py in alembic folder
+
+
+
 
 # Implement application
 app = FastAPI()
