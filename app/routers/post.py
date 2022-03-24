@@ -1,6 +1,8 @@
 from fastapi import Body, FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import  List, Optional
+
 
 # Script we created imports (.. means one folder up)
 from ..database import get_db
@@ -58,7 +60,8 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db),
 
 
 # READ #########################################
-@router.get("/", response_model=List[schemas.Post])
+#@router.get("/", response_model=List[schemas.Post])
+@router.get("/", response_model=List[schemas.PostOut])
 def get_posts(db: Session = Depends(get_db),
                 # Get current user, use oauth2 to check for token!
                 current_user: int = Depends(oauth2.get_current_user),
@@ -71,17 +74,30 @@ def get_posts(db: Session = Depends(get_db),
     # posts = cursor.fetchall()
 
     # ORM ( INCLUDES SQL SYNTAX INSIDE)
-    posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
+    # Without the votes count (ALSO RESPONSE SCHEMA IS DIFFERENT)
+    # posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
 
+    # Return also the number of votes a post has
+    # !! THE RESPONSE SCHEMA HAS CHANGED NOW
+    # query post, use COUNT func as "votes" and LEFT OUTER JOIN check on votes post id and GROUP BY id 
+    results = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+            # LEFT OUTER JOIN
+            models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(
+            # GROUP BY 
+            models.Post.id).filter(
+            # FILTERS
+            models.Post.title.contains(search)).limit(limit).offset(skip).all()
+
+ 
     # If you want to filter and get just the logged in user posts. 
     # So check posts user_id against current user id
     #posts = db.query(models.Post).filter(models.Post.owner_id == current_user.id).all()
-    return posts
+    return results
 
 
 
 # READ ID #########################################
-@router.get("/{id}", response_model=schemas.Post)
+@router.get("/{id}", response_model=schemas.PostOut)
 # Implement validation with (id: int) <- force convert to int in request
 def get_post(id: int, db: Session = Depends(get_db), 
                 current_user: int = Depends(oauth2.get_current_user)):
@@ -92,7 +108,17 @@ def get_post(id: int, db: Session = Depends(get_db),
     # post = cursor.fetchone()
 
     # ORM
-    post = db.query(models.Post).filter(models.Post.id == id).first()
+    #post = db.query(models.Post).filter(models.Post.id == id).first()
+
+    # Individual post with votes counted
+    # ! RESPONSE SCHEMA HAS CHANGED
+    post = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+            # LEFT OUTER JOIN
+            models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(
+            # GROUP BY 
+            models.Post.id).filter(
+            # FILTERS
+            models.Post.id == id).first()
 
     # If post does not exist
     if not post:

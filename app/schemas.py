@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, conint
 from datetime import datetime
 
 # Pydantic Models for SCHEMAS for requests/responds
@@ -17,6 +17,8 @@ class PostBase(BaseModel):
 # SCHEMA for creating posts
 class PostCreate(PostBase):
     pass
+
+
 
 
 ########################################
@@ -41,6 +43,15 @@ class TokenData(BaseModel):
     id: Optional[str] = None
 
 
+########################################
+# SCHEMA for votes
+class Vote(BaseModel):
+    # Post you want to like / take back like
+    post_id: int
+    # Direction of the vote 
+    # If direction = 1 user wants to like post
+    # If direction = 0 user wants to delete his like
+    dir: conint(le=1)
 
 
 # RESPONSE SCHEMAS ##############################
@@ -70,3 +81,9 @@ class Post(PostBase):
     # Convert SQL Alchemy model to pydantic model
     class Config:
         orm_mode = True
+
+
+# RESPONSE SCHEMA FOR POST RETURNING  WITH VOTES ###########
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
